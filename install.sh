@@ -138,7 +138,7 @@ clone_repository() {
         fi
     fi
     
-    if git clone https://github.com/dumiduzee/Hys-Zero-Pannel.git /etc/hysteria &> /dev/null; then
+    if git clone https://github.com/dumiduzee/HYsZeo.git /etc/hysteria &> /dev/null; then
         log_success "Repository cloned successfully"
     else
         log_error "Failed to clone repository"
