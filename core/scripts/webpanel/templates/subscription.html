@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription Info</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white shadow-lg rounded-lg p-8 max-w-md w-full">
+        <h1 class="text-2xl font-bold mb-4 text-center text-blue-600">Subscription Information</h1>
+        <div class="mb-4">
+            <span class="font-semibold">Username:</span>
+            <span class="ml-2">{{ user.get('username', '-') }}</span>
+        </div>
+        <div class="mb-4">
+            <span class="font-semibold">Status:</span>
+            <span class="ml-2">{{ status }}</span>
+        </div>
+        <div class="mb-4">
+            <span class="font-semibold">Account Created:</span>
+            <span class="ml-2">{{ creation }}</span>
+        </div>
+        <div class="mb-4">
+            <span class="font-semibold">Blocked:</span>
+            <span class="ml-2">{{ 'Yes' if blocked else 'No' }}</span>
+        </div>
+        <div class="mb-4">
+            <span class="font-semibold">Unlimited User:</span>
+            <span class="ml-2">{{ 'Yes' if unlimited else 'No' }}</span>
+        </div>
+        <div class="mb-4">
+            <span class="font-semibold">Usage:</span>
+            <span class="ml-2">{{ used_bytes | filesizeformat }} / {{ max_bytes | filesizeformat }}</span>
+        </div>
+        <div class="mb-4">
+            <span class="font-semibold">Expires In:</span>
+            <span class="ml-2">{{ expire_days }} days</span>
+        </div>
+        <div class="mt-6 text-center">
+            <span class="text-xs text-gray-400">Last updated: {{ now() }}</span>
+        </div>
+    </div>
+    <script>
+        // Optionally, you can add auto-refresh or copy features here
+    </script>
+</body>
+</html>

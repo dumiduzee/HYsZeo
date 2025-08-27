@@ -1,0 +1,576 @@
+{% extends "base.html" %}
+
+{% block title %}Users{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">Users <small class="font-weight-light"></small></h1>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">User List {% if users %}({{ users|length }}){% endif %}</h3>
+                <div class="card-tools d-flex align-items-center flex-wrap">
+
+                    <div class="mr-2 mb-2">
+                        <button type="button" class="btn btn-sm btn-default filter-button" data-filter="all">
+                            <i class="fas fa-list"></i> All
+                        </button>
+                    </div>
+                    <div class="mr-2 mb-2">
+                        <button type="button" class="btn btn-sm btn-warning filter-button" data-filter="on-hold">
+                            <i class="fas fa-pause-circle"></i> Hold
+                        </button>
+                    </div>
+                    <div class="mr-2 mb-2">
+                        <button type="button" class="btn btn-sm btn-info filter-button" data-filter="online">
+                            <i class="fas fa-wifi"></i> Online
+                        </button>
+                    </div>
+                    <div class="mr-2 mb-2">
+                        <button type="button" class="btn btn-sm btn-success filter-button" data-filter="enable">
+                            <i class="fas fa-check"></i> Enable
+                        </button>
+                    </div>
+                    <div class="mr-2 mb-2">
+                        <button type="button" class="btn btn-sm btn-danger filter-button" data-filter="disable">
+                            <i class="fas fa-ban"></i> Disable
+                        </button>
+                    </div>
+
+                    <div class="input-group input-group-sm" style="width: 200px;">
+                        <input type="text" id="searchInput" class="form-control float-right" placeholder="Search">
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-default" id="searchButton">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary ml-2" data-toggle="modal" data-target="#addUserModal">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-info ml-2" id="showSelectedLinks">
+                        <i class="fas fa-link"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger ml-2" id="deleteSelected">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body table-responsive p-0">
+                {% if not users %}
+                <div class="alert alert-warning m-3" role="alert">
+                    No users found.
+                </div>
+                {% else %}
+                <table class="table table-bordered table-hover" id="userTable">
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox" id="selectAll">
+                            </th>
+                            <th>#</th>
+                            <th>Status</th>
+                            <th>Username</th>
+                            <th>Traffic Usage</th>
+                            <th class="text-nowrap">Expiry Date</th>
+                            <th class="text-nowrap">Expiry Days</th>
+                            <th>Enable</th>
+                            <th class="text-nowrap requires-iplimit-service" style="display: none;">Unlimited IP</th>
+                            <th class="text-nowrap">Configs</th>
+                            <th class="text-nowrap">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users|sort(attribute='username', case_sensitive=false) %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" class="user-checkbox" value="{{ user['username'] }}">
+                            </td>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                {% if user['status'] == "Online" %}
+                                <i class="fas fa-circle text-success"></i> Online
+                                {% elif user['status'] == "Offline" %}
+                                <i class="fas fa-circle text-secondary"></i> Offline
+                                {% elif user['status'] == "On-hold" %}
+                                <i class="fas fa-circle text-warning"></i> On-hold
+                                {% elif user['status'] == "Conflict" %}
+                                <i class="fas fa-circle text-danger"></i> Conflict
+                                {% else %}
+                                <i class="fas fa-circle text-danger"></i> {{ user['status'] }}
+                                {% endif %}
+                            </td>
+                            <td data-username="{{ user['username'] }}">{{ user['username'] }}</td>
+                            <td>{{ user['traffic_used'] }}</td>
+                            <td>{{ user['expiry_date'] }}</td>
+                            <td>{{ user['expiry_days'] }}</td>
+                            <td>
+                                {% if user['enable'] %}
+                                <i class="fas fa-check-circle text-success"></i>
+                                {% else %}
+                                <i class="fas fa-times-circle text-danger"></i>
+                                {% endif %}
+                            </td>
+                            <td class="unlimited-ip-cell requires-iplimit-service" style="display: none;">
+                                {% if user['unlimited_ip'] %}
+                                <i class="fas fa-shield-alt text-primary"></i>
+                                {% else %}
+                                <i class="fas fa-times-circle text-muted"></i>
+                                {% endif %}
+                            </td>
+                            <td class="text-nowrap">
+                                <a href="#" class="config-link" data-toggle="modal" data-target="#qrcodeModal"
+                                    data-username="{{ user['username'] }}">
+                                    <i class="fas fa-qrcode"></i>
+                                </a>
+                                {% if user['token'] %}
+                                <button type="button" class="btn btn-sm btn-outline-primary ml-1 copy-sub-link" data-token="{{ user['token'] }}" title="Copy Subscription Link">
+                                    <i class="fas fa-link"></i>
+                                </button>
+                                {% endif %}
+                            </td>
+                            <td class="text-nowrap">
+                                <button type="button" class="btn btn-sm btn-info edit-user"
+                                    data-user="{{ user['username'] }}" data-toggle="modal"
+                                    data-target="#editUserModal">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-warning reset-user"
+                                    data-user="{{ user['username'] }}">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger delete-user"
+                                    data-user="{{ user['username'] }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" role="dialog" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addUserModalLabel">Add User</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs" id="addUserTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="single-user-tab" data-toggle="tab" href="#single-user" role="tab" aria-controls="single-user" aria-selected="true">Add User</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="bulk-users-tab" data-toggle="tab" href="#bulk-users" role="tab" aria-controls="bulk-users" aria-selected="false">Bulk Add</a>
+                    </li>
+                </ul>
+                <div class="tab-content" id="addUserTabContent">
+                    <div class="tab-pane fade show active" id="single-user" role="tabpanel" aria-labelledby="single-user-tab">
+                        <form id="addUserForm" class="mt-3">
+                            <div class="form-group">
+                                <label for="addUsername">Username</label>
+                                <input type="text" class="form-control" id="addUsername" name="username" required>
+                                <small class="form-text text-danger" id="addUsernameError"></small>
+                            </div>
+                            <div class="form-group">
+                                <label for="addTrafficLimit">Traffic Limit (GB)</label>
+                                <input type="number" class="form-control" id="addTrafficLimit" name="traffic_limit" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="addExpirationDays">Expiration Days</label>
+                                <input type="number" class="form-control" id="addExpirationDays" name="expiration_days" required>
+                            </div>
+                            <div class="form-check mb-3 requires-iplimit-service" style="display: none;">
+                                <input type="checkbox" class="form-check-input" id="addUnlimited" name="unlimited">
+                                <label class="form-check-label" for="addUnlimited">Unlimited IP</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="addSubmitButton">Add User</button>
+                        </form>
+                    </div>
+                    <div class="tab-pane fade" id="bulk-users" role="tabpanel" aria-labelledby="bulk-users-tab">
+                        <form id="addBulkUsersForm" class="mt-3">
+                            <div class="form-group">
+                                <label for="addBulkPrefix">Username Prefix</label>
+                                <input type="text" class="form-control" id="addBulkPrefix" name="prefix" required>
+                                <small class="form-text text-danger" id="addBulkPrefixError"></small>
+                            </div>
+                             <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="addBulkCount">Number of Users</label>
+                                    <input type="number" class="form-control" id="addBulkCount" name="count" value="10" required>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="addBulkStartNumber">Start Number</label>
+                                    <input type="number" class="form-control" id="addBulkStartNumber" name="start_number" value="1" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="addBulkTrafficLimit">Traffic Limit (GB)</label>
+                                    <input type="number" class="form-control" id="addBulkTrafficLimit" name="traffic_gb" required>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="addBulkExpirationDays">Expiration Days</label>
+                                    <input type="number" class="form-control" id="addBulkExpirationDays" name="expiration_days" required>
+                                </div>
+                            </div>
+                            <div class="form-check mb-3 requires-iplimit-service" style="display: none;">
+                                <input type="checkbox" class="form-check-input" id="addBulkUnlimited" name="unlimited">
+                                <label class="form-check-label" for="addBulkUnlimited">Unlimited IP</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="addBulkSubmitButton">Add Bulk Users</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1" role="dialog" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editUserModalLabel">Edit User</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <div class="form-group">
+                        <label for="editUsername">Username</label>
+                        <input type="text" class="form-control" id="editUsername" name="new_username">
+                        <small class="form-text text-danger" id="editUsernameError"></small>
+                    </div>
+                    <div class="form-group">
+                        <label for="editTrafficLimit">Traffic Limit (GB)</label>
+                        <input type="number" class="form-control" id="editTrafficLimit" name="new_traffic_limit">
+                    </div>
+                    <div class="form-group">
+                        <label for="editExpirationDays">Expiration Days</label>
+                        <input type="number" class="form-control" id="editExpirationDays" name="new_expiration_days">
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="editBlocked" name="blocked">
+                        <label class="form-check-label" for="editBlocked">Blocked</label>
+                    </div>
+                    <div class="form-check mb-3 requires-iplimit-service" style="display: none;">
+                        <input type="checkbox" class="form-check-input" id="editUnlimitedIp" name="unlimited_ip">
+                        <label class="form-check-label" for="editUnlimitedIp">Unlimited IP</label>
+                    </div>
+                    <input type="hidden" id="originalUsername" name="username">
+                    <button type="submit" class="btn btn-primary" id="editSubmitButton">Save Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- QR Code Modal -->
+<div class="modal fade" id="qrcodeModal" tabindex="-1" role="dialog" aria-labelledby="qrcodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="qrcodeModalLabel">QR Codes</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="qrcodesContainer" class="mx-auto"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Show Links Modal -->
+<div class="modal fade" id="showLinksModal" tabindex="-1" role="dialog" aria-labelledby="showLinksModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="showLinksModalLabel">Selected User Links</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Here are the Normal-SUB links for the selected users:</p>
+                <textarea id="linksTextarea" class="form-control" rows="10" readonly></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="copyLinksButton">Copy All</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script src="https://cdn.jsdelivr.net/npm/qr-code-styling/lib/qr-code-styling.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    $(function () {
+        const usernameRegex = /^[a-zA-Z0-9_]+$/;
+
+        function checkIpLimitServiceStatus() {
+            $.getJSON('{{ url_for("server_services_status_api") }}')
+                .done(data => {
+                    if (data.hysteria_iplimit === true) {
+                        $('.requires-iplimit-service').show();
+                    }
+                })
+                .fail(() => console.error('Error fetching IP limit service status.'));
+        }
+
+        function validateUsername(inputElement, errorElement) {
+            const username = $(inputElement).val();
+            const isValid = usernameRegex.test(username);
+            $(errorElement).text(isValid ? "" : "Usernames can only contain letters, numbers, and underscores.");
+            $(inputElement).closest('form').find('button[type="submit"]').prop('disabled', !isValid);
+        }
+
+        $('#addUsername, #addBulkPrefix, #editUsername').on('input', function() {
+            validateUsername(this, `#${this.id}Error`);
+        });
+
+        $(".filter-button").on("click", function () {
+            const filter = $(this).data("filter");
+            $("#selectAll").prop("checked", false);
+            $("#userTable tbody tr").each(function () {
+                let showRow;
+                switch (filter) {
+                    case "on-hold":    showRow = $(this).find("td:eq(2) i").hasClass("text-warning"); break;
+                    case "online":     showRow = $(this).find("td:eq(2) i").hasClass("text-success"); break;
+                    case "enable":     showRow = $(this).find("td:eq(7) i").hasClass("text-success"); break;
+                    case "disable":    showRow = $(this).find("td:eq(7) i").hasClass("text-danger"); break;
+                    default:           showRow = true;
+                }
+                $(this).toggle(showRow).find(".user-checkbox").prop("checked", false);
+            });
+        });
+
+        $("#selectAll").on("change", function () {
+            $("#userTable tbody tr:visible .user-checkbox").prop("checked", this.checked);
+        });
+
+        $("#deleteSelected").on("click", function () {
+            const selectedUsers = $(".user-checkbox:checked").map((_, el) => $(el).val()).get();
+            if (selectedUsers.length === 0) {
+                return Swal.fire("Warning!", "Please select at least one user to delete.", "warning");
+            }
+            Swal.fire({
+                title: "Are you sure?",
+                html: `This will delete: <b>${selectedUsers.join(", ")}</b>.<br>This action cannot be undone!`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                confirmButtonText: "Yes, delete them!",
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+                const urlTemplate = "{{ url_for('remove_user_api', username='U') }}";
+                const promises = selectedUsers.map(user => $.ajax({ url: urlTemplate.replace('U', user), method: "DELETE" }));
+                Promise.all(promises)
+                    .then(() => Swal.fire("Success!", "Selected users deleted.", "success").then(() => location.reload()))
+                    .catch(() => Swal.fire("Error!", "An error occurred while deleting users.", "error"));
+            });
+        });
+
+        $("#addUserForm, #addBulkUsersForm").on("submit", function (e) {
+            e.preventDefault();
+            const form = $(this);
+            const isBulk = form.attr('id') === 'addBulkUsersForm';
+            const url = isBulk ? "{{ url_for('add_bulk_users_api') }}" : "{{ url_for('add_user_api') }}";
+            const button = form.find('button[type="submit"]').prop('disabled', true);
+            
+            const formData = new FormData(this);
+            const jsonData = Object.fromEntries(formData.entries());
+
+            jsonData.unlimited = jsonData.unlimited === 'on';
+
+            $.ajax({
+                url: url,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(jsonData),
+            })
+            .done(res => Swal.fire("Success!", res.detail, "success").then(() => location.reload()))
+            .fail(err => Swal.fire("Error!", err.responseJSON?.detail || "An error occurred.", "error"))
+            .always(() => button.prop('disabled', false));
+        });
+
+        $("#editUserModal").on("show.bs.modal", function (event) {
+            const user = $(event.relatedTarget).data("user");
+            const row = $(event.relatedTarget).closest("tr");
+            const trafficText = row.find("td:eq(4)").text();
+            const expiryText = row.find("td:eq(6)").text();
+            
+            $("#originalUsername").val(user);
+            $("#editUsername").val(user);
+            $("#editTrafficLimit").val(parseFloat(trafficText.split('/')[1]) || 0);
+            $("#editExpirationDays").val(parseInt(expiryText) || 0);
+            $("#editBlocked").prop("checked", !row.find("td:eq(7) i").hasClass("text-success"));
+            $("#editUnlimitedIp").prop("checked", row.find(".unlimited-ip-cell i").hasClass("text-primary"));
+            validateUsername('#editUsername', '#editUsernameError');
+        });
+        
+        $("#editUserForm").on("submit", function (e) {
+            e.preventDefault();
+            const button = $("#editSubmitButton").prop("disabled", true);
+            const originalUsername = $("#originalUsername").val();
+            const url = "{{ url_for('edit_user_api', username='U') }}".replace('U', originalUsername);
+
+            const formData = new FormData(this);
+            const jsonData = Object.fromEntries(formData.entries());
+            jsonData.blocked = jsonData.blocked === 'on';
+            jsonData.unlimited_ip = jsonData.unlimited_ip === 'on';
+            if (jsonData.new_username === originalUsername) delete jsonData.new_username;
+
+            $.ajax({
+                url: url,
+                method: "PATCH",
+                contentType: "application/json",
+                data: JSON.stringify(jsonData),
+            })
+            .done(res => Swal.fire("Success!", res.detail, "success").then(() => location.reload()))
+            .fail(err => Swal.fire("Error!", err.responseJSON?.detail, "error"))
+            .always(() => button.prop('disabled', false));
+        });
+
+        $("#userTable").on("click", ".reset-user, .delete-user", function () {
+            const button = $(this);
+            const username = button.data("user");
+            const isDelete = button.hasClass("delete-user");
+            const action = isDelete ? "delete" : "reset";
+            const urlTemplate = isDelete ? "{{ url_for('remove_user_api', username='U') }}" : "{{ url_for('reset_user_api', username='U') }}";
+
+            Swal.fire({
+                title: `Are you sure you want to ${action}?`,
+                html: `This will ${action} user <b>${username}</b>.`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                confirmButtonText: `Yes, ${action} it!`,
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+                $.ajax({
+                    url: urlTemplate.replace("U", encodeURIComponent(username)),
+                    method: isDelete ? "DELETE" : "GET",
+                })
+                .done(res => Swal.fire("Success!", res.detail, "success").then(() => location.reload()))
+                .fail(() => Swal.fire("Error!", `Failed to ${action} user.`, "error"));
+            });
+        });
+
+        $("#qrcodeModal").on("show.bs.modal", function (event) {
+            const username = $(event.relatedTarget).data("username");
+            const qrcodesContainer = $("#qrcodesContainer").empty();
+            const url = "{{ url_for('show_user_uri_api', username='U') }}".replace("U", encodeURIComponent(username));
+            $.getJSON(url, response => {
+                [
+                    { type: "IPv4", link: response.ipv4 },
+                    { type: "IPv6", link: response.ipv6 },
+                    { type: "Normal-SUB", link: response.normal_sub }
+                ].forEach(config => {
+                    if (!config.link) return;
+                    const qrId = `qrcode-${config.type}`;
+                    const card = $(`<div class="card d-inline-block m-2"><div class="card-body"><div id="${qrId}" class="mx-auto" style="cursor: pointer;"></div><div class="mt-2 text-center small text-body font-weight-bold">${config.type}</div></div></div>`);
+                    qrcodesContainer.append(card);
+                    new QRCodeStyling({ width: 200, height: 200, data: config.link, margin: 2 }).append(document.getElementById(qrId));
+                    card.on("click", () => navigator.clipboard.writeText(config.link).then(() => Swal.fire({ icon: "success", title: `${config.type} link copied!`, showConfirmButton: false, timer: 1200 })));
+                });
+            }).fail(() => Swal.fire("Error!", "Failed to fetch user configuration.", "error"));
+        });
+        
+        $("#showSelectedLinks").on("click", function () {
+            const selectedUsers = $(".user-checkbox:checked").map((_, el) => $(el).val()).get();
+            if (selectedUsers.length === 0) {
+                return Swal.fire("Warning!", "Please select at least one user.", "warning");
+            }
+
+            Swal.fire({ title: 'Fetching links...', text: 'Please wait.', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            
+            const bulkUriApiUrl = "{{ url_for('show_multiple_user_uris_api') }}";
+
+            $.ajax({
+                url: bulkUriApiUrl,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ usernames: selectedUsers }),
+            }).done(results => {
+                Swal.close();
+                const allLinks = results.map(res => res.normal_sub).filter(Boolean);
+                const failedCount = selectedUsers.length - allLinks.length;
+                if (failedCount > 0) {
+                   Swal.fire('Warning', `Could not fetch links for ${failedCount} user(s), but others were successful.`, 'warning');
+                }
+                if (allLinks.length > 0) {
+                    $("#linksTextarea").val(allLinks.join('\n'));
+                    $("#showLinksModal").modal("show");
+                } else {
+                   Swal.fire('Error', `Could not fetch links for any of the selected users.`, 'error');
+                }
+            }).fail(() => Swal.fire('Error!', 'An error occurred while fetching the links.', 'error'));
+        });
+        
+        $("#copyLinksButton").on("click", () => {
+            navigator.clipboard.writeText($("#linksTextarea").val())
+                .then(() => Swal.fire({ icon: "success", title: "All links copied!", showConfirmButton: false, timer: 1200 }));
+        });
+
+        function filterUsers() {
+            const searchText = $("#searchInput").val().toLowerCase();
+            $("#userTable tbody tr").each(function () {
+                const username = $(this).find("td:eq(3)").text().toLowerCase();
+                $(this).toggle(username.includes(searchText));
+            });
+        }
+        
+        $('#addUserModal').on('show.bs.modal', function () {
+            $('#addUserForm, #addBulkUsersForm').trigger('reset');
+            $('#addUsernameError, #addBulkPrefixError').text('');
+            Object.assign(document.getElementById('addTrafficLimit'), {value: 30});
+            Object.assign(document.getElementById('addExpirationDays'), {value: 30});
+            Object.assign(document.getElementById('addBulkTrafficLimit'), {value: 30});
+            Object.assign(document.getElementById('addBulkExpirationDays'), {value: 30});
+            $('#addSubmitButton, #addBulkSubmitButton').prop('disabled', true);
+            $('#addUserModal a[data-toggle="tab"]').first().tab('show');
+        });
+
+        $("#searchButton, #searchInput").on("click keyup", filterUsers);
+        
+        checkIpLimitServiceStatus();
+        // Copy subscription link
+        $("#userTable").on("click", ".copy-sub-link", function () {
+            const token = $(this).data("token");
+            // Use domain or IP from config/env
+            let baseUrl = window.location.origin;
+            // Optionally, fetch from backend if you want to use SNI/IP4 from env
+            const subUrl = `${baseUrl}/subscription/${token}`;
+            navigator.clipboard.writeText(subUrl)
+                .then(() => Swal.fire({ icon: "success", title: "Subscription link copied!", showConfirmButton: false, timer: 1200 }));
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,18 @@
+# [1.17.0] - 2025-08-24
+
+
+#### ⚡ Authentication
+
+* 🚀 **Implemented Go HTTP Auth Server** for **maximum performance**
+* ⚡ Removed old command-based auth system
+
+#### 👥 User Management
+
+* ✨ **Bulk User Creation** added across:
+
+  * 🖥️ **Frontend UI**
+  * 📡 **API Endpoint**
+  * 💻 **CLI Command**
+  * 📜 **Automation Script**
+* 🔍 New **Online User Filter & Sort** on the Users page
+* 🐛 Fixed: underscores now supported in usernames
